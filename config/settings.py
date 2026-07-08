@@ -23,6 +23,12 @@ SECRET_KEY = os.environ.get(
 )
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
+# ── Render / Reverse Proxy ────────────────────────
+# Render terminates HTTPS at its proxy. Without this Django builds http:// media
+# URLs which browsers block as mixed content when the frontend is HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
     'localhost,127.0.0.1'
@@ -52,9 +58,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -169,10 +175,8 @@ SIMPLE_JWT = {
 # ──────────────────────────────────────────────
 # CORS
 # ──────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000'
-).split(',')
+# Allow all origins so media files load on Vercel frontend
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # ──────────────────────────────────────────────
@@ -181,7 +185,7 @@ CORS_ALLOW_CREDENTIALS = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ──────────────────────────────────────────────
-# File upload limits
+# File upload limits (support video files up to 100 MB)
 # ──────────────────────────────────────────────
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB
