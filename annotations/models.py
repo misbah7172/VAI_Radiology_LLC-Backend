@@ -14,7 +14,7 @@ class Image(models.Model):
         on_delete=models.CASCADE,
         related_name='images',
     )
-    file = models.ImageField(upload_to='annotations/images/%Y/%m/%d/')
+    file = models.FileField(upload_to='annotations/images/%Y/%m/%d/')
     filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -37,6 +37,10 @@ class Annotation(models.Model):
     color = models.CharField(max_length=7, default='#FF6B6B')
     polygon_data = models.JSONField(
         help_text='Array of {x, y} coordinates forming the polygon vertices'
+    )
+    frame_time = models.FloatField(
+        null=True, blank=True,
+        help_text='Video timestamp in seconds when this annotation was drawn. Null for image annotations.'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

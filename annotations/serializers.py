@@ -7,15 +7,15 @@ class AnnotationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Annotation
-        fields = ['id', 'image', 'label', 'color', 'polygon_data', 'created_at']
+        fields = ['id', 'image', 'label', 'color', 'polygon_data', 'frame_time', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def validate_polygon_data(self, value):
         """Ensure polygon_data is a list of {x, y} coordinate objects."""
         if not isinstance(value, list):
             raise serializers.ValidationError('polygon_data must be a list of points.')
-        if len(value) < 3:
-            raise serializers.ValidationError('A polygon needs at least 3 points.')
+        if len(value) < 1:
+            raise serializers.ValidationError('An annotation needs at least 1 point.')
         for point in value:
             if not isinstance(point, dict) or 'x' not in point or 'y' not in point:
                 raise serializers.ValidationError(
@@ -46,6 +46,6 @@ class ImageUploadSerializer(serializers.Serializer):
     """Serializer for handling multi-file image uploads."""
 
     files = serializers.ListField(
-        child=serializers.ImageField(),
+        child=serializers.FileField(),
         allow_empty=False,
     )
