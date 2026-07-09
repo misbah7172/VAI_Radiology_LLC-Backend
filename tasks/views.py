@@ -27,6 +27,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         if task_status:
             qs = qs.filter(status=task_status)
 
+        # Filter by tag (case-insensitive substring match across all dates)
+        tag = self.request.query_params.get('tag', '').strip()
+        if tag:
+            # JSON contains icontains — works for both SQLite & Postgres
+            qs = qs.filter(tags__icontains=tag)
+
         return qs
 
     def perform_create(self, serializer):
