@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Image, Annotation
+from .models import Image, Annotation, ImageSet
 
 
 class AnnotationSerializer(serializers.ModelSerializer):
@@ -14,8 +14,8 @@ class AnnotationSerializer(serializers.ModelSerializer):
         """Ensure polygon_data is a list of {x, y} coordinate objects."""
         if not isinstance(value, list):
             raise serializers.ValidationError('polygon_data must be a list of points.')
-        if len(value) < 1:
-            raise serializers.ValidationError('An annotation needs at least 1 point.')
+        if len(value) < 3:
+            raise serializers.ValidationError('A polygon needs at least 3 points.')
         for point in value:
             if not isinstance(point, dict) or 'x' not in point or 'y' not in point:
                 raise serializers.ValidationError(
@@ -32,7 +32,7 @@ class ImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Image
-        fields = ['id', 'filename', 'file', 'file_url', 'uploaded_at', 'annotations']
+        fields = ['id', 'filename', 'file', 'file_url', 'uploaded_at', 'image_set', 'annotations']
         read_only_fields = ['id', 'filename', 'uploaded_at']
 
     def get_file_url(self, obj):
@@ -40,6 +40,17 @@ class ImageSerializer(serializers.ModelSerializer):
         if request and obj.file:
             return request.build_absolute_uri(obj.file.url)
         return None
+
+
+class ImageSetSerializer(serializers.ModelSerializer):
+    """Serializer for collections of uploaded images."""
+
+    images = ImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ImageSet
+        fields = ['id', 'name', 'created_at', 'updated_at', 'images']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class ImageUploadSerializer(serializers.Serializer):
