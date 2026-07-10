@@ -20,7 +20,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         # Filter by date if provided
         date = self.request.query_params.get('date')
         if date:
-            qs = qs.filter(due_date=date)
+            qs = qs.filter(due_date__date=date)
 
         # Filter by status if provided
         task_status = self.request.query_params.get('status')
@@ -32,6 +32,15 @@ class TaskViewSet(viewsets.ModelViewSet):
         if tag:
             # JSON contains icontains — works for both SQLite & Postgres
             qs = qs.filter(tags__icontains=tag)
+
+        # Filter by month (YYYY-MM) — returns all tasks in that month, any day
+        month = self.request.query_params.get('month', '').strip()
+        if month:
+            try:
+                year_str, mo_str = month.split('-')
+                qs = qs.filter(due_date__year=int(year_str), due_date__month=int(mo_str))
+            except (ValueError, AttributeError):
+                pass
 
         return qs
 
