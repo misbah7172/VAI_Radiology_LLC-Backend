@@ -64,21 +64,29 @@ The API will be available at `http://localhost:8000`.
 | POST | `/api/auth/login/` | Login with email + password |
 | POST | `/api/auth/refresh/` | Refresh JWT token |
 | GET | `/api/auth/me/` | Current user profile |
-| GET | `/api/tasks/` | List tasks (filter: `?date=YYYY-MM-DD`) |
-| POST | `/api/tasks/` | Create a task |
+| GET | `/api/auth/health/` | Public health status check |
+| GET | `/api/tasks/` | List tasks (filters: `?date=YYYY-MM-DD`, `?tag=NAME`, `?month=YYYY-MM`) |
+| POST | `/api/tasks/` | Create a task (accepts `start_date` and `due_date` as ISO datetimes) |
 | PUT/PATCH | `/api/tasks/{id}/` | Update a task |
 | DELETE | `/api/tasks/{id}/` | Delete a task |
 | POST | `/api/tasks/reorder/` | Bulk reorder/status update |
 | GET | `/api/annotations/images/` | List uploaded images |
-| POST | `/api/annotations/images/` | Upload image(s) |
-| DELETE | `/api/annotations/images/{id}/` | Delete an image |
+| POST | `/api/annotations/images/` | Upload image(s) or video(s) |
+| DELETE | `/api/annotations/images/{id}/` | Delete an image or video |
 | GET | `/api/annotations/polygons/` | List annotations |
-| POST | `/api/annotations/polygons/` | Create polygon annotation |
+| POST | `/api/annotations/polygons/` | Create annotation (attaches optional `frame_time` for video frames) |
 | DELETE | `/api/annotations/polygons/{id}/` | Delete an annotation |
 
 ## Difficulties & How I Overcame Them
 
-*(To be filled after development)*
+1. **Production HTTPS & CORS Blockages**:
+   When hosting on Render, Django generated `http` media URLs instead of `https` because it did not recognize proxy SSL termination. We resolved this by adding `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` and `USE_X_FORWARDED_HOST = True` in `settings.py` so that media URLs match the client origin correctly.
+   
+2. **CORS Restrictions with HTML5 Canvas Drawing**:
+   Initially, loading media to draw bounding boxes/points on HTML5 `<canvas>` elements threw cross-origin exceptions because of Vercel/Render hosting boundaries. We replaced the canvas-based drawing layout with an SVG-overlay coordinate map system which cleanly maps percentage points `(0.0 - 1.0)` over images and videos without triggering CORS security blocks.
+
+3. **Frame-specific Video Annotation Display**:
+   To prevent video annotations from showing throughout the entire duration of a video, we added a `frame_time` field (float) to the `Annotation` model. The frontend syncs time at 60 FPS using a `requestAnimationFrame` loop and filters elements to only render annotations when `Math.abs(ann.frame_time - video.currentTime) < 0.05` seconds.
 
 ## Deployment
 
