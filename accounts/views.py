@@ -40,3 +40,18 @@ def me_view(request):
     Returns: { "id": ..., "email": "...", "full_name": "...", ... }
     """
     return Response(UserSerializer(request.user).data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_view(request):
+    """
+    Public endpoint to check the health status of the Render server.
+
+    GET /api/auth/health/
+    Returns: { "status": "healthy", "message": "Render server is active" }
+    """
+    return Response({
+        'status': 'healthy',
+        'message': 'Render server is active'
+    }, status=status.HTTP_200_OK)
