@@ -2,8 +2,9 @@
 Task model for the Kanban board.
 """
 
-from django.conf import settings
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
 
 class Task(models.Model):
@@ -36,7 +37,8 @@ class Task(models.Model):
         choices=Priority.choices,
         default=Priority.MEDIUM,
     )
-    due_date = models.DateField()
+    start_date = models.DateTimeField(default=timezone.now)
+    due_date = models.DateTimeField()
     tags = models.JSONField(default=list, blank=True)
     position = models.IntegerField(default=0, help_text='Order within the column')
     created_at = models.DateTimeField(auto_now_add=True)
