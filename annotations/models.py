@@ -17,12 +17,15 @@ class ImageSet(models.Model):
     name = models.CharField(max_length=255, default='Unnamed Set')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Stores DICOM tags, NIfTI header info, etc. for medical formats.
+    metadata = models.JSONField(null=True, blank=True, default=None)
 
     class Meta:
         ordering = ['-updated_at']
 
     def __str__(self):
         return self.name
+
 
 
 class Image(models.Model):

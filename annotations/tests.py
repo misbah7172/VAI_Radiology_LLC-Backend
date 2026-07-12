@@ -1,4 +1,6 @@
 import io
+import zipfile
+import numpy as np
 
 from django.test import TestCase
 from django.urls import reverse
@@ -54,6 +56,75 @@ class ImageAPITests(TestCase):
         )
         response = self.client.delete(f'/api/annotations/images/{image.id}/')
         self.assertEqual(response.status_code, 204)
+
+    def test_upload_dicom(self):
+        """Test uploading a DICOM file and converting it to PNG slices."""
+        import pydicom
+        from pydicom.dataset import Dataset, FileMetaDataset
+        
+        file_meta = FileMetaDataset()
+        file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+        file_meta.MediaStorageSOPClassUID = pydicom.uid.CTImageStorage
+        file_meta.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
+        
+        ds = Dataset()
+        ds.file_meta = file_meta
+        ds.is_little_endian = True
+        ds.is_implicit_VR = False
+        ds.SOPClassUID = pydicom.uid.CTImageStorage
+        ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
+        ds.PatientName = "Test^Patient"
+        ds.PatientID = "12345"
+        ds.Rows = 10
+        ds.Columns = 10
+        ds.BitsAllocated = 16
+        ds.BitsStored = 12
+        ds.HighBit = 11
+        ds.PixelRepresentation = 0
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        # 10x10 zero array
+        pixel_data = np.zeros((10, 10), dtype=np.uint16)
+        ds.PixelData = pixel_data.tobytes()
+        
+        buffer = io.BytesIO()
+        pydicom.filewriter.dcmwrite(buffer, ds, write_like_original=False)
+        buffer.seek(0)
+        
+        dicom_file = SimpleUploadedFile("test.dcm", buffer.read(), content_type="application/dicom")
+        response = self.client.post('/api/annotations/images/', {'files': [dicom_file]}, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(Image.objects.count(), 1)
+
+    def test_upload_zip_archive(self):
+        """Test uploading a ZIP archive and extracting its contents."""
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as z:
+            img = PILImage.new('RGB', (10, 10), color='blue')
+            img_buf = io.BytesIO()
+            img.save(img_buf, format='PNG')
+            z.writestr('inner_test.png', img_buf.getvalue())
+        buffer.seek(0)
+        
+        zip_file = SimpleUploadedFile("archive.zip", buffer.read(), content_type="application/zip")
+        response = self.client.post('/api/annotations/images/', {'files': [zip_file]}, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(Image.objects.count(), 1)
+
+    def test_upload_tiff_converted(self):
+        """Test uploading a TIFF image and verifying it is pre-converted to PNG."""
+        img = PILImage.new('RGB', (10, 10), color='green')
+        buffer = io.BytesIO()
+        img.save(buffer, format='TIFF')
+        buffer.seek(0)
+        
+        tiff_file = SimpleUploadedFile("test.tiff", buffer.read(), content_type="image/tiff")
+        response = self.client.post('/api/annotations/images/', {'files': [tiff_file]}, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 1)
+        self.assertTrue(response.data[0]['filename'].endswith('.png'))
 
 
 class AnnotationAPITests(TestCase):
