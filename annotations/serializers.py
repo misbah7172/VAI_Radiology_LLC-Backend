@@ -37,9 +37,12 @@ class ImageSerializer(serializers.ModelSerializer):
 
     def get_file_url(self, obj):
         request = self.context.get('request')
-        if request and obj.file:
+        if not obj.file:
+            return None
+        if request:
             return request.build_absolute_uri(obj.file.url)
-        return None
+        # Fallback: return the relative URL — the frontend will prepend the API base URL
+        return obj.file.url
 
 
 class ImageSetSerializer(serializers.ModelSerializer):
